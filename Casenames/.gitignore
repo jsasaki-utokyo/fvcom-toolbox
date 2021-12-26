@@ -1,0 +1,6 @@
+*.nc
+*.nml
+*.dat
+!*_sigma.dat
+diary
+varb/
