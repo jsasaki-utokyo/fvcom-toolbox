@@ -1,4 +1,4 @@
-function [fmt, nml] = make_default_nml(conf)
+function [fmt, nml] = make_default_nml(conf,Mobj)
 % Generate a model namelist with the default values from FVCOM.
 %
 % [fmt, nml] = make_default_nml(conf)
@@ -21,12 +21,12 @@ function [fmt, nml] = make_default_nml(conf)
 %    Pierre Cazenave (Plymouth Marine Laboratory)
         
 nml.NML_CASE = [];
-nml.NML_CASE.CASE_TITLE=['FVCOM ', conf.version, ' code'] ;
+nml.NML_CASE.CASE_TITLE=['FVCOM ', conf.FVCOM_version, ' case in ' conf.casename] ;
 nml.NML_CASE.TIMEZONE='UTC';
 nml.NML_CASE.DATE_FORMAT='YMD';
-nml.NML_CASE.DATE_REFERENCE='default';
-nml.NML_CASE.START_DATE='2006-02-01 00:00:00';
-nml.NML_CASE.END_DATE='2006-03-01 00:00:00';
+nml.NML_CASE.DATE_REFERENCE='1858-11-17 00:00:00';
+nml.NML_CASE.START_DATE=conf.START_DATE;
+nml.NML_CASE.END_DATE=conf.END_DATE;
 
 %%
 nml.NML_STARTUP = [];
@@ -35,22 +35,22 @@ nml.NML_STARTUP.STARTUP_FILE      = [conf.casename, '_restart.nc'];
 nml.NML_STARTUP.STARTUP_UV_TYPE   = 'default';
 nml.NML_STARTUP.STARTUP_TURB_TYPE = 'default';
 nml.NML_STARTUP.STARTUP_TS_TYPE   = 'constant';
-nml.NML_STARTUP.STARTUP_T_VALS    = 18.5;
+nml.NML_STARTUP.STARTUP_T_VALS    = 16.0;
 fmt.NML_STARTUP.STARTUP_T_VALS.format    = '%5.2f';
-nml.NML_STARTUP.STARTUP_S_VALS    = 35.6;
+nml.NML_STARTUP.STARTUP_S_VALS    = 34.5;
 fmt.NML_STARTUP.STARTUP_S_VALS.format    = '%5.2f';
 nml.NML_STARTUP.STARTUP_U_VALS    = 0.0E+0;
 fmt.NML_STARTUP.STARTUP_U_VALS.format    = '%5.2f';
 nml.NML_STARTUP.STARTUP_V_VALS    = 0.0E+0;
 fmt.NML_STARTUP.STARTUP_V_VALS.format    = '%5.2f';
-nml.NML_STARTUP.STARTUP_DMAX      =  -5.0;
+nml.NML_STARTUP.STARTUP_DMAX      =  -1 * max(Mobj.h);
 fmt.NML_STARTUP.STARTUP_DMAX.format      =  '%5.2f';
 %/
 %%
 nml.NML_IO = [];
-nml.NML_IO.INPUT_DIR       =  './input';
-nml.NML_IO.OUTPUT_DIR      =  './output';
-nml.NML_IO.IREPORT         =  10000;
+nml.NML_IO.INPUT_DIR       =  '../../../data/tokyobay_1000_sph';
+nml.NML_IO.OUTPUT_DIR      =  '../otp';
+nml.NML_IO.IREPORT         =  conf.IREPORT;
 fmt.NML_IO.IREPORT.format         =  '%u';
 nml.NML_IO.VISIT_ALL_VARS  = 'F';
 nml.NML_IO.WAIT_FOR_VISIT  = 'F';
@@ -58,37 +58,37 @@ nml.NML_IO.USE_MPI_IO_MODE = 'F';
 %/
 %%
 nml.NML_INTEGRATION = [];
-nml.NML_INTEGRATION.EXTSTEP_SECONDS =  0.2 ;
+nml.NML_INTEGRATION.EXTSTEP_SECONDS =  conf.EXTSTEP_SECONDS ;
 fmt.NML_INTEGRATION.EXTSTEP_SECONDS.format =  '%6.3f' ;
-nml.NML_INTEGRATION.ISPLIT          =  10 ;
+nml.NML_INTEGRATION.ISPLIT          =  conf.isplit ;
 fmt.NML_INTEGRATION.ISPLIT.format          =  '%u' ;
-nml.NML_INTEGRATION.IRAMP           =  864000; %! 24 hours with dt=0.2
+nml.NML_INTEGRATION.IRAMP           =  conf.IRAMP; %! 24 hours with dt=0.2
 fmt.NML_INTEGRATION.IRAMP.format           =  '%u' ; %! 24 hours with dt=0.2
-nml.NML_INTEGRATION.MIN_DEPTH       =  0.2;
+nml.NML_INTEGRATION.MIN_DEPTH       =  0.05;
 fmt.NML_INTEGRATION.MIN_DEPTH.format       =  '%5.2f';
 nml.NML_INTEGRATION.STATIC_SSH_ADJ  =  0.0;
 fmt.NML_INTEGRATION.STATIC_SSH_ADJ.format  =  '%5.2f';
 %/
 %%
 nml.NML_RESTART = [];
-nml.NML_RESTART.RST_ON  = 'T';
-nml.NML_RESTART.RST_FIRST_OUT      = '2046-03-01 00:00:00';%
-nml.NML_RESTART.RST_OUT_INTERVAL   = 'seconds = 86400.';%
+nml.NML_RESTART.RST_ON  = 'F';
+nml.NML_RESTART.RST_FIRST_OUT      = conf.START_DATE;%
+nml.NML_RESTART.RST_OUT_INTERVAL   = 'seconds = 3600.00';%
 nml.NML_RESTART.RST_OUTPUT_STACK   =           0;
 fmt.NML_RESTART.RST_OUTPUT_STACK.format   =           '%u';
 %/
 %%
 nml.NML_NETCDF = [];
 nml.NML_NETCDF.NC_ON   = 'T';
-nml.NML_NETCDF.NC_FIRST_OUT    = '2046-02-01 00:00:00';%
-nml.NML_NETCDF.NC_OUT_INTERVAL =  'seconds= 3600.';%
+nml.NML_NETCDF.NC_FIRST_OUT    = conf.START_DATE;%
+nml.NML_NETCDF.NC_OUT_INTERVAL =  'seconds= 3600.00';%
 nml.NML_NETCDF.NC_OUTPUT_STACK =  0;%
 fmt.NML_NETCDF.NC_OUTPUT_STACK.format =  '%u';%
 nml.NML_NETCDF.NC_SUBDOMAIN_FILES      = 'FVCOM' ;%
 nml.NML_NETCDF.NC_GRID_METRICS = 'T';
 nml.NML_NETCDF.NC_FILE_DATE    = 'T';
-nml.NML_NETCDF.NC_VELOCITY     = 'F';
-switch conf.version
+nml.NML_NETCDF.NC_VELOCITY     = 'T';
+switch conf.FVCOM_version
     case 'fvcom-offline'
         nml.NML_NETCDF.NC_OFFLINE      = 'T';
     case 'ver3.2.1'
@@ -96,19 +96,19 @@ switch conf.version
     case 'ver4.0'
         nml.NML_NETCDF.NC_OFFLINE      = 'T';
 end
-nml.NML_NETCDF.NC_SALT_TEMP    = 'F';
-nml.NML_NETCDF.NC_TURBULENCE   = 'F';
+nml.NML_NETCDF.NC_SALT_TEMP    = 'T';
+nml.NML_NETCDF.NC_TURBULENCE   = 'T';
 nml.NML_NETCDF.NC_AVERAGE_VEL  = 'T';
 nml.NML_NETCDF.NC_VERTICAL_VEL = 'T';
-nml.NML_NETCDF.NC_WIND_VEL     = 'F';
-nml.NML_NETCDF.NC_WIND_STRESS  = 'F';
-nml.NML_NETCDF.NC_EVAP_PRECIP  = 'F';
-nml.NML_NETCDF.NC_SURFACE_HEAT = 'F';
+nml.NML_NETCDF.NC_WIND_VEL     = 'T';
+nml.NML_NETCDF.NC_WIND_STRESS  = 'T';
+nml.NML_NETCDF.NC_EVAP_PRECIP  = 'T';
+nml.NML_NETCDF.NC_SURFACE_HEAT = 'T';
 nml.NML_NETCDF.NC_GROUNDWATER  = 'F';
-nml.NML_NETCDF.NC_BIO          = 'F';
-nml.NML_NETCDF.NC_WQM          = 'F';
-nml.NML_NETCDF.NC_VORTICITY    = 'F';
-switch conf.version
+nml.NML_NETCDF.NC_BIO          = 'T';
+nml.NML_NETCDF.NC_WQM          = 'T';
+nml.NML_NETCDF.NC_VORTICITY    = 'T';
+switch conf.FVCOM_version
     case 'ver4.0'
     case 'ver4.0-ersem'
         nml.NML_NETCDF.NC_FABM      = 'T';
@@ -116,32 +116,32 @@ end%/
 %%
 nml.NML_NETCDF_AV = [];
 nml.NML_NETCDF_AV.NCAV_ON = 'F';
-nml.NML_NETCDF_AV.NCAV_FIRST_OUT  = '2046-02-01 00:00:00';%
+nml.NML_NETCDF_AV.NCAV_FIRST_OUT  = 'conf.START_DATE';%
 nml.NML_NETCDF_AV.NCAV_OUT_INTERVAL       =  'seconds= 3600.';%
 nml.NML_NETCDF_AV.NCAV_OUTPUT_STACK       =           0;%
 fmt.NML_NETCDF_AV.NCAV_OUTPUT_STACK.format       =           '%u';%
 nml.NML_NETCDF_AV.NCAV_GRID_METRICS       = 'F';
 nml.NML_NETCDF_AV.NCAV_FILE_DATE  = 'T';
 nml.NML_NETCDF_AV.NCAV_VELOCITY   = 'F';
-switch conf.version
+switch conf.FVCOM_version
     case 'fvcom-ersem'
         nml.NML_NETCDF_AV.NCAV_OFFLINE      = 'F';
     case 'ver3.2.1'
     case 'ver3.1.6'
 end
 nml.NML_NETCDF_AV.NCAV_SALT_TEMP  = 'T';
-nml.NML_NETCDF_AV.NCAV_TURBULENCE = 'F';
-nml.NML_NETCDF_AV.NCAV_AVERAGE_VEL        = 'F';
-nml.NML_NETCDF_AV.NCAV_VERTICAL_VEL       = 'F';
-nml.NML_NETCDF_AV.NCAV_WIND_VEL   = 'F';
-nml.NML_NETCDF_AV.NCAV_WIND_STRESS        = 'F';
-nml.NML_NETCDF_AV.NCAV_EVAP_PRECIP        = 'F';
-nml.NML_NETCDF_AV.NCAV_SURFACE_HEAT       = 'F';
+nml.NML_NETCDF_AV.NCAV_TURBULENCE = 'T';
+nml.NML_NETCDF_AV.NCAV_AVERAGE_VEL        = 'T';
+nml.NML_NETCDF_AV.NCAV_VERTICAL_VEL       = 'T';
+nml.NML_NETCDF_AV.NCAV_WIND_VEL   = 'T';
+nml.NML_NETCDF_AV.NCAV_WIND_STRESS        = 'T';
+nml.NML_NETCDF_AV.NCAV_EVAP_PRECIP        = 'T';
+nml.NML_NETCDF_AV.NCAV_SURFACE_HEAT       = 'T';
 nml.NML_NETCDF_AV.NCAV_GROUNDWATER        = 'F';
-nml.NML_NETCDF_AV.NCAV_BIO        = 'F';
-nml.NML_NETCDF_AV.NCAV_WQM        = 'F';
-nml.NML_NETCDF_AV.NCAV_VORTICITY  = 'F';
-switch conf.version
+nml.NML_NETCDF_AV.NCAV_BIO        = 'T';
+nml.NML_NETCDF_AV.NCAV_WQM        = 'T';
+nml.NML_NETCDF_AV.NCAV_VORTICITY  = 'T';
+switch conf.FVCOM_version
     case 'ver4.0'
     case 'ver4.0-ersem'
         nml.NML_NETCDF_AV.NCAV_FABM      = 'T';
@@ -149,7 +149,7 @@ end%/
 %/
 %%
 nml.NML_SURFACE_FORCING = [];
-nml.NML_SURFACE_FORCING.WIND_ON 			= 'T';
+nml.NML_SURFACE_FORCING.WIND_ON 			= 'F';
 nml.NML_SURFACE_FORCING.WIND_TYPE       		= 'speed';%
 nml.NML_SURFACE_FORCING.WIND_FILE      		= [conf.casename '_wnd.nc'];%
 nml.NML_SURFACE_FORCING.WIND_KIND      		= 'variable';%
@@ -157,7 +157,7 @@ nml.NML_SURFACE_FORCING.WIND_X 			=  5.0000000E+00;%
 fmt.NML_SURFACE_FORCING.WIND_X.format 			=  '%5.2f';%
 nml.NML_SURFACE_FORCING.WIND_Y 			=  5.0000000E+00;%
 fmt.NML_SURFACE_FORCING.WIND_Y.format 			=  '%5.2f';%
-nml.NML_SURFACE_FORCING.HEATING_ON     		= 'T';
+nml.NML_SURFACE_FORCING.HEATING_ON     		= 'F';
 nml.NML_SURFACE_FORCING.HEATING_TYPE   		= 'flux';%
 nml.NML_SURFACE_FORCING.HEATING_KIND   		= 'variable' ;%
 nml.NML_SURFACE_FORCING.HEATING_FILE    		= [conf.casename '_wnd.nc'];%
@@ -171,14 +171,14 @@ nml.NML_SURFACE_FORCING.HEATING_RADIATION     		=  0.0000000E+00;%
 fmt.NML_SURFACE_FORCING.HEATING_RADIATION.format     		=  '%6.2f';%
 nml.NML_SURFACE_FORCING.HEATING_NETFLUX		=  0.0000000E+00;%
 fmt.NML_SURFACE_FORCING.HEATING_NETFLUX.format		=  '%6.2f';%
-nml.NML_SURFACE_FORCING.PRECIPITATION_ON    		= 'T';
+nml.NML_SURFACE_FORCING.PRECIPITATION_ON    		= 'F';
 nml.NML_SURFACE_FORCING.PRECIPITATION_KIND  		= 'variable';%
 nml.NML_SURFACE_FORCING.PRECIPITATION_FILE   		= [conf.casename '_wnd.nc'];%
 nml.NML_SURFACE_FORCING.PRECIPITATION_PRC    		=  0.0000000E+00;%
 fmt.NML_SURFACE_FORCING.PRECIPITATION_PRC.format    		=  '%6.2f';%
 nml.NML_SURFACE_FORCING.PRECIPITATION_EVP    		=  0.0000000E+00;%
 fmt.NML_SURFACE_FORCING.PRECIPITATION_EVP.format    		=  '%6.2f';%
-nml.NML_SURFACE_FORCING.AIRPRESSURE_ON 		= 'T';
+nml.NML_SURFACE_FORCING.AIRPRESSURE_ON 		= 'F';
 nml.NML_SURFACE_FORCING.AIRPRESSURE_KIND    		= 'variable';%
 nml.NML_SURFACE_FORCING.AIRPRESSURE_FILE    		= [conf.casename '_wnd.nc'];%
 nml.NML_SURFACE_FORCING.AIRPRESSURE_VALUE       	=  0.0000000E+00;%
@@ -201,7 +201,7 @@ fmt.NML_SURFACE_FORCING.WAVE_UB_BOT.format     		=  '%5.2f';
 %/
 %%
 nml.NML_HEATING_CALCULATED = [];
-nml.NML_HEATING_CALCULATED.HEATING_CALCULATE_ON    = 'F';
+nml.NML_HEATING_CALCULATED.HEATING_CALCULATE_ON    = 'T';
 nml.NML_HEATING_CALCULATED.HEATING_CALCULATE_TYPE  = 'flux'     ;%
 nml.NML_HEATING_CALCULATED.HEATING_CALCULATE_FILE  = [conf.casename '_wnd.nc'];   %
 nml.NML_HEATING_CALCULATED.HEATING_CALCULATE_KIND  = 'variable'                     ;%
@@ -223,9 +223,9 @@ nml.NML_HEATING_CALCULATED.SHORTWAVE_RADIATION     =  0.000000000000000E+000;
 fmt.NML_HEATING_CALCULATED.SHORTWAVE_RADIATION.format     =  '%6.2f';
 nml.NML_HEATING_CALCULATED.HEATING_LONGWAVE_PERCTAGE_IN_HEATFLUX     = 0.78;%
 fmt.NML_HEATING_CALCULATED.HEATING_LONGWAVE_PERCTAGE_IN_HEATFLUX.format     = '%5.2f';%
-nml.NML_HEATING_CALCULATED.HEATING_LONGWAVE_LENGTHSCALE_IN_HEATFLUX  = 1.4;%
+nml.NML_HEATING_CALCULATED.HEATING_LONGWAVE_LENGTHSCALE_IN_HEATFLUX  = 1.40;%
 fmt.NML_HEATING_CALCULATED.HEATING_LONGWAVE_LENGTHSCALE_IN_HEATFLUX.format  = '%5.2f';%
-nml.NML_HEATING_CALCULATED.HEATING_SHORTWAVE_LENGTHSCALE_IN_HEATFLUX = 6.3;
+nml.NML_HEATING_CALCULATED.HEATING_SHORTWAVE_LENGTHSCALE_IN_HEATFLUX = 6.30;
 fmt.NML_HEATING_CALCULATED.HEATING_SHORTWAVE_LENGTHSCALE_IN_HEATFLUX.format = '%5.2f';
 %/
 %%
@@ -244,7 +244,7 @@ fmt.NML_PHYSICS.VERTICAL_PRANDTL_NUMBER.format         = '%5.2f';
 nml.NML_PHYSICS.BOTTOM_ROUGHNESS_MINIMUM        =  0.0025;
 fmt.NML_PHYSICS.BOTTOM_ROUGHNESS_MINIMUM.format        =  '%e';
 nml.NML_PHYSICS.BOTTOM_ROUGHNESS_LENGTHSCALE    =  -1.0;
-fmt.NML_PHYSICS.BOTTOM_ROUGHNESS_LENGTHSCALE.format    =  '%e';
+fmt.NML_PHYSICS.BOTTOM_ROUGHNESS_LENGTHSCALE.format    =  '%5.2f';
 nml.NML_PHYSICS.BOTTOM_ROUGHNESS_KIND           = 'static';
 nml.NML_PHYSICS.BOTTOM_ROUGHNESS_TYPE           = 'orig';
 nml.NML_PHYSICS.BOTTOM_ROUGHNESS_FILE           = [conf.casename '_z0=0.005.nc'];
@@ -291,7 +291,7 @@ nml.NML_OPEN_BOUNDARY_CONTROL.OBC_SALT_NUDGING            = 'T';
 nml.NML_OPEN_BOUNDARY_CONTROL.OBC_SALT_FILE               = [conf.casename '_tsobc.nc'];
 nml.NML_OPEN_BOUNDARY_CONTROL.OBC_SALT_NUDGING_TIMESCALE  =  0.00005;% !0.0014;%
 fmt.NML_OPEN_BOUNDARY_CONTROL.OBC_SALT_NUDGING_TIMESCALE.format  =  '%15.10f';% !0.0014;%   switch conf.version
-switch conf.version
+switch conf.FVCOM_version
     case 'ver4.0'
     case 'ver4.0-ersem'
         nml.NML_OPEN_BOUNDARY_CONTROL.OBC_FABM_NUDGING            = 'F';
@@ -350,7 +350,7 @@ nml.NML_ADDITIONAL_MODELS.DATA_ASSIMILATION       = 'F';
 nml.NML_ADDITIONAL_MODELS.DATA_ASSIMILATION_FILE  =    'none';%
 nml.NML_ADDITIONAL_MODELS.BIOLOGICAL_MODEL        = 'F';
 nml.NML_ADDITIONAL_MODELS.STARTUP_BIO_TYPE        = 'observed';%
-switch conf.version
+switch conf.FVCOM_version
     case 'ver4.0'
     case 'ver4.0-ersem'
         nml.NML_ADDITIONAL_MODELS.FABM_MODEL            = 'F';
@@ -403,7 +403,7 @@ nml.NML_STATION_TIMESERIES.OUT_SALT_TEMP             = 'F';
 nml.NML_STATION_TIMESERIES.OUT_INTERVAL              = 'seconds= 360.0';
 %/
 %%
-switch conf.version
+switch conf.FVCOM_version
     case 'ver4.0'
     case 'ver4.0-ersem'
         nml.NML_FABM = [];

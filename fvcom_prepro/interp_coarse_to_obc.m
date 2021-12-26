@@ -69,9 +69,9 @@ function Mobj = interp_coarse_to_obc(Mobj, coarse, varlist)
 [~, subname] = fileparts(mfilename('fullpath'));
 
 global ftbverbose
-if ftbverbose
+% if ftbverbose
     fprintf('\nbegin : %s\n', subname)
-end
+% end
 
 if nargin == 2
     fields = fieldnames(coarse);
@@ -101,8 +101,8 @@ end
 % for each node/element.
 
 obc_coarse_idx = [];
-if isfield(Mobj, 'read_obc_elems')
-    oElems = [Mobj.read_obc_elems{:}];
+if isfield(Mobj, 'read_obc_elements')
+    oElems = [Mobj.read_obc_elements{:}];
 else
     oElems = [];
 end
@@ -145,13 +145,13 @@ mask = coarse.(fields{ff}).data(:, :, :, 1) > 1.26e29;
 if ~isfield(Mobj, 'hc')
     Mobj.hc = nodes2elems(Mobj.h, Mobj);
 end
-max_obc_depth = max([max(Mobj.h([Mobj.read_obc_nodes{:}])), max(Mobj.hc([Mobj.read_obc_elems{:}]))]);
+max_obc_depth = max([max(Mobj.h([Mobj.read_obc_nodes{:}]))]);% , max(Mobj.hc([Mobj.read_obc_elems{:}]))]);
 [~, zidx] = min(abs(coarse.Depth.data - max_obc_depth));
 zidx = min([zidx + 1, length(coarse.Depth.data)]);
 
-if ftbverbose
+% if ftbverbose
     tic
-end
+% end
 % Only do warnings about removing values outside some ranges once per
 % variable.
 warned = true(4, 1);
@@ -171,9 +171,9 @@ for v = 1:length(fields)
         % Number of boundary elements to process
         nf = length(oElems);
 
-        if ftbverbose
+        % if ftbverbose
             fprintf('Variable %s on elements (%d positions)\n', fields{v}, length(fvlon))
-        end
+        % end
     else
         % Make sure the nodes are listed in the same way as in
         % casename_obc.dat.
@@ -184,18 +184,18 @@ for v = 1:length(fields)
         % Number of boundary nodes
         nf = length(oNodes);
 
-        if ftbverbose
+        % if ftbverbose
             fprintf('Variable %s on nodes (%d positions)\n', fields{v}, length(fvlon))
-        end
+        % end
     end
 
     fvtemp = nan(nf, fz, nt); % FVCOM interpolated data
 
     for t = 1:nt
 
-        if ftbverbose
+        % if ftbverbose
             fprintf('%s : %i of %i %s timesteps... \n', subname, t, nt, fields{v})
-        end
+        % end
         % Get the current 3D array of coarse results. Only load the data we
         % need in both the vertical and horizontal (i.e. clip to the
         % locations which cover the open boundary positions only).
@@ -543,7 +543,11 @@ for s = 1:length(fvfields)
 end
 
 if isfield(coarse, 'time')
-    Mobj.ts_times = coarse.time;
+    if any(strcmpi(fields{v}, {'u', 'v'}))
+        Mobj.mf_times = coarse.time;
+    else
+        Mobj.ts_times = coarse.time;
+    end
 end
 
 if ftbverbose
@@ -563,7 +567,7 @@ end
 % hyz = 1;   % coarse depth index (1-33)
 %
 % % Find the coarse seabed indices
-% % [~, hyz] = nanmax(hdepth, [], 3);
+% [~, hyz] = nanmax(hdepth, [], 3);
 %
 % % Get the corresponding indices for the coarse data
 % [~, idx] = min(sqrt((lon(:) - fvlon(nn)).^2 + (lat(:) - fvlat(nn)).^2));

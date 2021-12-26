@@ -1,5 +1,4 @@
 .svn
 *.swp
 *~
-*.mat
-*.nc
+originals/

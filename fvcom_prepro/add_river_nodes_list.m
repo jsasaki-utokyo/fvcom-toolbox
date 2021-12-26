@@ -80,15 +80,16 @@ if plotFig == 1
     hold on
     
     plot(x(Nlist), y(Nlist), 'ro')
+    axis('equal', 'tight')
     title('river nodes')
 end
 
 % add to mesh object
 npts = numel(Nlist);
-Mobj.nRivers = Mobj.nRivers + 1;
-Mobj.nRivNodes(Mobj.nRivers) = npts;
-Mobj.riv_nodes(Mobj.nRivers, 1:npts) = Nlist;
-Mobj.riv_name{Mobj.nRivers} = RiverName;
+% Mobj.nRivers = Mobj.nRivers + 1;
+% Mobj.nRivNodes(Mobj.nRivers) = npts;
+% Mobj.riv_nodes(Mobj.nRivers, 1:npts) = Nlist;
+% Mobj.riv_name{Mobj.nRivers} = RiverName;
 
 Mobj.have_rivers = true;
 

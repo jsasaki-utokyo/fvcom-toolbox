@@ -315,6 +315,13 @@ data.Y.data = netcdf.getVar(ncid, varid, 'double');
 
 netcdf.close(ncid)
 
+% Check and fix integrity of data.X.data and data.Y.data
+% tempX = data.X.data(:,1);
+% tempY = data.Y.data(1,:);
+load('get_HYCOM_forcing.mat');
+data.X.data = tempX;
+data.Y.data = tempY;
+
 % If the spatial data are vectors, turn them in to matrices here.
 if isvector(data.X.data) && isvector(data.Y.data)
     [data.X.data, data.Y.data] = meshgrid(data.X.data, data.Y.data);
@@ -388,9 +395,9 @@ for aa = 1:length(fields)
     c = 0; % counter for iterating through tmjd.
 
     for tt = 1:nt
-        if ftbverbose
+        % if ftbverbose
             fprintf('%s: time %i of %i... ', fields{aa}, tt, nt)
-        end
+        % end
 
         % Get the current url value for this time step. This
         % approach means we can grab data which straddles a
@@ -432,7 +439,9 @@ for aa = 1:length(fields)
             data.time = [data.time; tmjd{c}(ts)];
         end
 
-        if ftbverbose; fprintf('done.\n'); end
+        % if ftbverbose
+            fprintf('done.\n'); 
+        % end
     end
     netcdf.close(ncid);
 end
@@ -461,10 +470,10 @@ function url = get_url(time, threehourly)
 if time < greg2mjulian(1992, 10, 2, 0, 0, 0)
     error('No HYCOM data available prior to 1992-10-02. Select a start date from 1992-10-02 onwards.')
 elseif time >= greg2mjulian(1992, 10, 2, 0, 0, 0) && time < greg2mjulian(1995, 7, 31, 0, 0, 0)
-    warning('Using the HYCOM Global Reanalysis data for dates up to 2008/09/16, thereafter the Global Analysis.')
+    % warning('Using the HYCOM Global Reanalysis data for dates up to 2008/09/16, thereafter the Global Analysis.')
     url = sprintf('http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_19.0%s?', threehourly);
 elseif time >= greg2mjulian(1995, 7, 31, 0, 0, 0) && time < greg2mjulian(2008, 09, 19, 0, 0, 0)
-    warning('Using the HYCOM Global Reanalysis data for dates up to 2008/09/16, thereafter the Global Analysis.')
+    % warning('Using the HYCOM Global Reanalysis data for dates up to 2008/09/16, thereafter the Global Analysis.')
     url = sprintf('http://tds.hycom.org/thredds/dodsC/GLBu0.08/expt_19.1%s?', threehourly);
 elseif time >= greg2mjulian(2008, 9, 19, 0, 0, 0) && time < greg2mjulian(2009, 5, 7, 0, 0, 0)
     url = 'http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_90.6?';

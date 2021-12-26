@@ -21,7 +21,7 @@
 %----------------
 % function hh = quiverc2wcmap(varargin)
 % Andrew Diamond 3/17/2005
-% This is based off of Tobias Höffken which was based off of Bertrand Dano
+% This is based off of Tobias Hî’Žfken which was based off of Bertrand Dano
 % keeping with their main intent to show a color w/r to magnitude quiver plot
 % while maintaining a large amount of quiver API backwards compatability.
 % Functional differences from quiverc2:
@@ -34,7 +34,7 @@
 % color triplet.  I have included as part of this file in a subfunction below.
 %----------------
 % Comments from quiverc2
-% changed Tobias Höffken 3-14-05
+% changed Tobias Hî’Žfken 3-14-05
 % totally downstripped version of the former
 % split input field into n segments and do a quiver qhich each of them 
  
@@ -44,7 +44,7 @@
 % Bertrand Dano 3-3-03
 % Copyright 1984-2002 The MathWorks, Inc. 
 
-% changed T. Höffken 14.03.05, for high data resolution
+% changed T. Hî’Žfken 14.03.05, for high data resolution
 % using fixed color "spacing" of 20
 
 %QUIVERC Quiver color plot.

@@ -41,25 +41,25 @@ end
 %--------------------------------------------------------------------------
 % Dump the file
 %--------------------------------------------------------------------------
-if strcmpi(Mobj.nativeCoords, 'cartesian')
-    x = Mobj.Positions(:,3);
-    y = Mobj.Positions(:,4);
-elseif strcmpi(Mobj.nativeCoords, 'spherical')
-    x = Mobj.Positions(:,1);
-    y = Mobj.Positions(:,2);
-else
-    error('Unknown native coordinate system string: %s', Mobj.nativeCoords)
-end
+% if strcmpi(Mobj.nativeCoords, 'cartesian')
+%    x = Mobj.Positions(:,3);
+%    y = Mobj.Positions(:,4);
+%elseif strcmpi(Mobj.nativeCoords, 'spherical')
+%    x = Mobj.Positions(:,1);
+%    y = Mobj.Positions(:,2);
+%else
+%    error('Unknown native coordinate system string: %s', Mobj.nativeCoords)
+%end
 
 if(ftbverbose)
     fprintf('writing FVCOM gridfile %s\n',filename);
 end
 
 fid = fopen(filename,'w');
-fprintf(fid, ' No           X        Y      Node (Cell)        Station Name\n');
+fprintf(fid, ' No       Lon.(X)        Lat.(Y)   Node(Cell)   Depth(Cell)             Station Name\n');
 
 for s=1:length(Mobj.stations)
-    fprintf(fid, '%i %f %f %i %f %s\n', cell2mat(Mobj.stations{s}(1:5)), char(Mobj.stations{s}(6)));
+    fprintf(fid, '%3i %13.6f %13.6f %12i %13.3f %24s\n', cell2mat(Mobj.stations{s}(1:5)), char(Mobj.stations{s}(6)));
 end
 
 fclose(fid);
@@ -67,4 +67,3 @@ fclose(fid);
 if(ftbverbose)
   fprintf(['end   : ' subname '\n'])
 end
-

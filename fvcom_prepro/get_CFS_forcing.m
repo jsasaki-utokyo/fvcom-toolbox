@@ -1,4 +1,4 @@
-function data = get_CFS_forcing(Mobj, modelTime, varargin)
+function data = get_CFS_forcing(Mobj, modelTime, timeStep, varargin)
 % Get the required parameters from CFSv2 reanalysis products to force
 % FVCOM.
 %
@@ -15,6 +15,7 @@ function data = get_CFS_forcing(Mobj, modelTime, varargin)
 %       have_lonlat - boolean to signify whether coordinates are spherical
 %                   or cartesian.
 %   modelTime - Modified Julian Date start and end times
+%   timeStep - time interval (Unit: day)
 %   varargin - optional parameter/value pairs:
 %       - list of variables to extract:
 %           'varlist', {'tmp2m', 'uwnd', 'vwnd'}
@@ -46,7 +47,7 @@ function data = get_CFS_forcing(Mobj, modelTime, varargin)
 % EXAMPLE USAGE:
 %   To download the default set of data (see list above):
 %
-%       forcing = get_CFS_forcing(Mobj, [51345, 51376]);
+%       forcing = get_CFS_forcing(Mobj, [51345, 51376], 1/24);
 %
 %   To only download wind data:
 %
@@ -58,6 +59,7 @@ function data = get_CFS_forcing(Mobj, modelTime, varargin)
 %   Rory O'Hara Murray (Marine Scotland Science)
 %
 % Revision history:
+%   2019-05-10 Add time interpolation option by Yulong Wang.
 %   2015-05-19 First version loosely based on get_NCEP_forcing.m.
 %
 %==========================================================================
@@ -71,8 +73,8 @@ end
 
 % Parse the input arguments
 varlist = [];
-if nargin > 2
-    for a = 1:2:nargin - 2
+if nargin > 3
+    for a = 1:2:nargin - 3
         switch varargin{a}
             case 'varlist'
                 varlist = varargin{a + 1};
@@ -99,7 +101,7 @@ end
 % Create year and month arrays for the period we've been given.
 [yyyy, mm, dd, HH, MM, SS] = mjulian2greg(modelTime);
 assert(min(yyyy) >= 1979, 'CFSv2 data not available prior to 1979')
-assert(max(yyyy) <= 2009, 'CFSv2 data not available after 2009')
+assert(max(yyyy) <= 2009, 'CFSv2 data not available after 2009 try the git_CFS_forcing2')
 dates = datenum([yyyy; mm; dd; HH; MM; SS]');
 serial = dates(1):dates(2);
 [years, months, ~, ~, ~, ~] = datevec(serial);
@@ -116,7 +118,8 @@ for t = 1:nt
 
     % Set up a struct of the remote locations in which we're
     % interested.
-    url = 'http://nomads.ncdc.noaa.gov/thredds/dodsC/cfsr1hr/';
+    % https://nomads.ncdc.noaa.gov/thredds/catalog/cfsr1hr/catalog.html
+    url = 'https://nomads.ncdc.noaa.gov/thredds/dodsC/cfsr1hr/';
     ncep.dlwsfc  = [url, ...
         sprintf('%04d%02d/dlwsfc.gdas.%04d%02d.grb2', year, month, ...
         year, month)];
@@ -132,9 +135,9 @@ for t = 1:nt
     ncep.pressfc = [url, ...
         sprintf('%04d%02d/pressfc.gdas.%04d%02d.grb2', year, month, ...
         year, month)];
-    ncep.q2m     = [url, ...
-        sprintf('%04d%02d/q2m.gdas.%04d%02d.grb2', year, month, ...
-        year, month)];
+%     ncep.q2m     = [url, ...
+%         sprintf('%04d%02d/q2m.gdas.%04d%02d.grb2', year, month, ...
+%         year, month)];
     ncep.tmp2m   = [url, ...
         sprintf('%04d%02d/tmp2m.gdas.%04d%02d.grb2', year, month, ...
         year, month)];
@@ -155,7 +158,7 @@ for t = 1:nt
     names.lhtfl = 'Latent_heat_net_flux';
     names.prate = 'Precipitation_rate';
     names.pressfc = 'Pressure';
-    names.q2m = 'Specific_humidity';
+%     names.q2m = 'Specific_humidity';
     names.tmp2m = 'Temperature';
     names.uswsfc = 'Upward_Short-Wave_Rad_Flux';
     names.uwnd = 'U-component_of_wind';
@@ -192,7 +195,7 @@ for t = 1:nt
 
         % If you don't know what it contains, start by using the
         % 'netcdf.inq' operation:
-        %[numdims, numvars, numglobalatts, unlimdimid] = netcdf.inq(ncid);
+        % [numdims, numvars, numglobalatts, unlimdimid] = netcdf.inq(ncid);
         % Time is in hours since the start of the month. We want
         % sensible times, so we'll have to offset at some point.
         varid = netcdf.inqVarID(ncid, 'time');
@@ -229,7 +232,7 @@ for t = 1:nt
         end
 
         % Time is in hours relative to the start of the month for CFSv2.
-        timevec = datevec((data_time / 24) + datenum(year, month, 1, 0, 0, 0));
+        timevec = datevec((data_time * timeStep) + datenum(year, month, 1, 0, 0, 0));
 
         % Get the data time and convert to Modified Julian Day.
         scratch.time = greg2mjulian(...
@@ -265,13 +268,13 @@ for t = 1:nt
         end
 
         % Check the times.
-        % [y, m, d, hh, mm, ss] = mjulian2greg(scratch.time);
-        % fprintf('(%s - %s) ', ...
-        %     datestr([y(1),m(1),d(1),hh(1),mm(1),ss(1)], ...
-        %         'yyyy-mm-dd HH:MM:SS'), ...
-        %     datestr([y(end),m(end),d(end),hh(end),mm(end),ss(end)], ...
-        %         'yyyy-mm-dd HH:MM:SS'))
-        % clearvars y m d hh mm ss oftv
+        [y, m, d, hh, mm, ss] = mjulian2greg(scratch.time);
+        fprintf('(%s - %s) \n', ...
+            datestr([y(1),m(1),d(1),hh(1),mm(1),ss(1)], ...
+                'yyyy-mm-dd HH:MM:SS'), ...
+            datestr([y(end),m(end),d(end),hh(end),mm(end),ss(end)], ...
+                'yyyy-mm-dd HH:MM:SS'))
+        clearvars y m d hh mm ss oftv
 
         % Get the data in two goes, once for the end of the grid (west of
         % Greenwich), once for the beginning (east of Greenwich), and then
@@ -413,7 +416,7 @@ for t = 1:nt
             % We have a straightforward data extraction
             scratch.(fields{aa}).lon = data_lon.lon(index_lon);
 
-            varid = netcdf.inqVarID(ncid, (fields{aa}));
+            varid = netcdf.inqVarID(ncid, names.(fields{aa}));
             % [varname,xtype,dimids,natts] = netcdf.inqVar(ncid,varid);
             % [~, length1] = netcdf.inqDim(ncid, dimids(1))
             % [~, length2] = netcdf.inqDim(ncid, dimids(2))
@@ -486,6 +489,21 @@ for t = 1:nt
     end
 end
 
+% Add code to tidy the result structure which is total mess.
+fields = fieldnames(data);
+for f = 1:length(fields)
+    switch fields{f}
+        case 'time'
+            data.time = data.dlwsfc.time;
+        otherwise
+            try
+                data.(fields{f}).data = data.(fields{f}).data.(fields{f});
+            catch
+                continue;
+            end
+    end
+end
+        
 % Now we have the data, we need to fix the averaging to be hourly instead
 % of n-hourly, where n varies from 0 to 6. See
 % http://rda.ucar.edu/datasets/ds094.1/#docs/FAQs_hrly_timeseries.html with
@@ -592,14 +610,14 @@ if isfield(data, 'tmp2m')
 end
 
 % Convert specific humidity to relative humidity.
-if isfield(data, 'q2m') && isfield(data, 'tmp2m') && isfield(data, 'pressfc')
-    % Convert pressure from Pascals to millibars. Save relative humidity as
-    % percentage. Convert specific humidity to percent too.
-    data.rhum.data = 100 * qair2rh(data.q2m.data, data.tmp2m.data, data.pressfc.data / 100);
-end
-if isfield(data, 'q2m')
-    data.q2m.data = 100 * data.q2m.data;
-end
+% if isfield(data, 'q2m') && isfield(data, 'tmp2m') && isfield(data, 'pressfc')
+%     % Convert pressure from Pascals to millibars. Save relative humidity as
+%     % percentage. Convert specific humidity to percent too.
+%     data.rhum.data = 100 * qair2rh(data.q2m.data, data.tmp2m.data, data.pressfc.data / 100);
+% end
+% if isfield(data, 'q2m')
+%     data.q2m.data = 100 * data.q2m.data;
+% end
 
 % Make sure all the data we have downloaded are the same shape as the
 % longitude and latitude arrays.
@@ -631,16 +649,16 @@ for aa = 1:length(fields)
     end
 end
 
-% Have a look at some data.
-% [X, Y] = meshgrid(data.lon, data.lat);
-% for i = 1:size(data.uwnd.data, 3)
+% Have a look at some data(in the final created 'forcing' file).
+% [X, Y] = meshgrid(forcing.lon(1,:), forcing.lat(:,1));
+% for i = 1:size(forcing.uwnd.data, 3)
 %     figure(1)
 %     clf
-%     uv = sqrt(data.uwnd.data(:, :, i).^2 + data.vwnd.data(:, :, i).^2);
+%     uv = sqrt(forcing.uwnd.data(:, :, i).^2 + forcing.vwnd.data(:, :, i).^2);
 %     pcolor(X, Y, uv')
 %     shading flat
 %     axis('equal','tight')
-%     pause(0.1)
+%     pause(0.2)
 % end
 
 if ftbverbose

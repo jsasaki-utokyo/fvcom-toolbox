@@ -81,13 +81,13 @@ yc = nodes2elems(y, Mobj);
 nc = netcdf.create([fileprefix, '_hfx.nc'], 'clobber');
 
 netcdf.putAtt(nc, netcdf.getConstant('NC_GLOBAL'), 'title', 'FVCOM Forcing File')
-netcdf.putAtt(nc, netcdf.getConstant('NC_GLOBAL'), 'institution', 'Plymouth Marine Laboratory')
+netcdf.putAtt(nc, netcdf.getConstant('NC_GLOBAL'), 'institution', 'The University of Tokyo')
 netcdf.putAtt(nc, netcdf.getConstant('NC_GLOBAL'), 'source', 'FVCOM grid (unstructured) surface forcing')
 netcdf.putAtt(nc, netcdf.getConstant('NC_GLOBAL'), 'history', sprintf('File created with %s from the MATLAB fvcom-toolbox', subname))
 netcdf.putAtt(nc, netcdf.getConstant('NC_GLOBAL'), 'references', 'http://fvcom.smast.umassd.edu, http://codfish.smast.umassd.edu')
 netcdf.putAtt(nc, netcdf.getConstant('NC_GLOBAL'), 'Conventions', 'CF-1.0')
 netcdf.putAtt(nc, netcdf.getConstant('NC_GLOBAL'), 'CoordinateSystem', Mobj.nativeCoords)
-netcdf.putAtt(nc, netcdf.getConstant('NC_GLOBAL'), 'CoordinateProjection', 'init=epsg:4326') % WGS84?
+netcdf.putAtt(nc, netcdf.getConstant('NC_GLOBAL'), 'CoordinateProjection', 'init=WGS84') % WGS84?
 
 % Dimensions
 nele_dimid=netcdf.defDim(nc, 'nele', nElems);
@@ -212,20 +212,20 @@ netcdf.putVar(nc, airt_varid, data.air.node);
 netcdf.putVar(nc, rhum_varid, data.rhum.node);
 try
     % NCEP
-    netcdf.putVar(nc, dlwrf_varid, data.dlwrf.node);
+    netcdf.putVar(nc, dlwrf_varid, full(data.dlwrf.node));
 catch
     % Met Office Unified Model
     netcdf.putVar(nc, dlwrf_varid, data.nlwrf.node);
 end
 try
     % NCEP
-    netcdf.putVar(nc, dswrf_varid, data.dswrf.node);
+    netcdf.putVar(nc, dswrf_varid, full(data.dswrf.node));
 catch
     % Met Office Unified Model
     netcdf.putVar(nc, dswrf_varid, data.nswrf.node);
 end
 try % work with both slp and pres data.
-    netcdf.putVar(nc, slp_varid, data.slp.node);
+    netcdf.putVar(nc, slp_varid, full(data.slp.node));
 catch
     netcdf.putVar(nc, slp_varid, data.pres.node);
 end

@@ -82,9 +82,10 @@ if ftbverbose
 end
 
 % Default to string times as FVCOM looks for these first.
-strtime = true;
+strtime = false;
 inttime = false;
 floattime = false;
+julian = false;
 for vv = 1:2:length(varargin)
     switch varargin{vv}
         case 'strtime'
@@ -93,12 +94,15 @@ for vv = 1:2:length(varargin)
             inttime = true;
         case 'floattime'
             floattime = true;
+        case 'julian'
+            julian = true;
     end
 end
 
 tsOBCFile = [basename, '_tsobc.nc'];
 
 obc_nodes = [Mobj.read_obc_nodes{:}]';
+obc_nodes = double(obc_nodes);
 obc_h = Mobj.h(obc_nodes);
 siglev = Mobj.siglev(obc_nodes, :);
 siglay = Mobj.siglay(obc_nodes, :);
@@ -169,16 +173,31 @@ end
 if floattime
     time_varid=netcdf.defVar(nc,'time','NC_FLOAT',time_dimid);
     netcdf.putAtt(nc,time_varid,'long_name','time');
-    netcdf.putAtt(nc,time_varid,'units','days since 1858-11-17 00:00:00');
-    netcdf.putAtt(nc,time_varid,'time_zone','UTC');
+    if julian
+        netcdf.putAtt(nc,time_varid,'units','days since 1858-11-17 00:00:00');
+        netcdf.putAtt(nc,time_varid,'format','modified julian day (MJD)');
+        netcdf.putAtt(nc,time_varid,'time_zone','UTC');
+    else
+        netcdf.putAtt(nc,time_varid,'units','days since 0.0');
+        netcdf.putAtt(nc,time_varid,'time_zone','none');
+    end
 end
 
 if inttime
-    itime_varid=netcdf.defVar(nc,'Itime','NC_INT',time_dimid);
-    netcdf.putAtt(nc,itime_varid,'units','days since 1858-11-17 00:00:00');
-    netcdf.putAtt(nc,itime_varid,'format','modified julian day (MJD)');
-    netcdf.putAtt(nc,itime_varid,'time_zone','UTC');
+%     itime_varid=netcdf.defVar(nc,'Itime','NC_INT',time_dimid);
+%     netcdf.putAtt(nc,itime_varid,'units','days since 1858-11-17 00:00:00');
+%     netcdf.putAtt(nc,itime_varid,'format','modified julian day (MJD)');
+%     netcdf.putAtt(nc,itime_varid,'time_zone','UTC');
 
+    itime_varid=netcdf.defVar(nc,'Itime','NC_INT',time_dimid);
+    if julian
+        netcdf.putAtt(nc,itime_varid,'units','days since 1858-11-17 00:00:00');
+        netcdf.putAtt(nc,itime_varid,'format','modified julian day (MJD)');
+        netcdf.putAtt(nc,itime_varid,'time_zone','UTC');
+    else
+        netcdf.putAtt(nc,itime_varid,'units','days since 0.0');
+        netcdf.putAtt(nc,itime_varid,'time_zone','none');
+    end
     itime2_varid=netcdf.defVar(nc,'Itime2','NC_INT',time_dimid);
     netcdf.putAtt(nc,itime2_varid,'units','msec since 00:00:00');
     netcdf.putAtt(nc,itime2_varid,'time_zone','UTC');
@@ -230,11 +249,21 @@ if strtime
     end
     netcdf.putVar(nc,Times_varid,[0, 0],[26, nTimes],nStringOut);
 end
+
 if floattime
-    netcdf.putVar(nc,time_varid,0,numel(time),time);
+    if julian
+        netcdf.putVar(nc,time_varid,0,numel(time),time);
+    else
+        netcdf.putVar(nc,time_varid,0,numel(time),time-time(1));
+    end
 end
+
 if inttime
-    netcdf.putVar(nc,itime_varid,floor(time));
+    if julian
+        netcdf.putVar(nc,itime_varid,0,nTimes,floor(time));
+    else
+        netcdf.putVar(nc,itime_varid,0,nTimes,floor(time-time(1)));
+    end
     % netcdf.putVar(nc,itime2_varid,0,numel(time),mod(time,1)*24*3600*1000); % PWC original
     % KJA edit: avoids rounding errors when converting from double to single
     % Rounds to nearest multiple of the number of msecs in an hour

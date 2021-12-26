@@ -1,4 +1,4 @@
-function [Mobj]  = add_stations_list(Mobj,Positions,Names,Dist)
+function [Mobj]  = add_stations_list(Mobj,Positions,Names,Dist,plotFig)
 % Add a set of stations at which FVCOM will output time series.
 %
 % [Mobj] = add_stations_list(Mobj,Positions,Names,Dist)
@@ -58,7 +58,7 @@ end
 % Check the inputs
 %--------------------------------------------------------------------------
 nPos = size(Positions, 1);
-nNames = size(Names, 1);
+nNames = size(Names);
 if nPos ~= nNames
     error('The number of the supplied station positions and names do not match (%i and %i respectively)', nPos, nNames)
 end
@@ -93,10 +93,10 @@ for s = 1:nPos
 
     if dist >= Dist
         % Skip out for this station
-        if ftbverbose
+%         if ftbverbose
             fprintf('Skipping station %s (%g, %g). Nodal distance from station position = %f\n', Names{s}, Positions(s, 1), Positions(s, 2), dist)
-        end
-        continue
+%         end
+%         continue
     end
     out{inc} = {inc, Positions(s, cols(1)), Positions(s, cols(2)), node, Mobj.h(node), Names{s}, elem};
     inc = inc + 1;
@@ -109,6 +109,32 @@ else
     if ftbverbose
         fprintf('No stations found within the model domain.\n')
     end
+end
+
+%--------------------------------------------------------------------------
+% Plot the mesh 
+%--------------------------------------------------------------------------
+if plotFig == 1
+    if strcmpi(Mobj.nativeCoords(1:3), 'car')
+        x = Mobj.x;
+        y = Mobj.y;
+    else
+        x = Mobj.lon;
+        y = Mobj.lat;
+    end
+    
+    figure
+    patch('Vertices', [x,y], 'Faces', Mobj.tri,...
+        'Cdata', Mobj.h, 'edgecolor', 'k', 'facecolor', 'interp');
+    hold on
+    
+    if strcmpi(Mobj.nativeCoords(1:3), 'car')
+        plot(Positions(:,3), Positions(:,4), 'ro')
+    else
+        plot(Positions(:,1), Positions(:,2), 'ro')
+    end
+    axis('equal', 'tight')
+    title('Stations')
 end
 
 if ftbverbose

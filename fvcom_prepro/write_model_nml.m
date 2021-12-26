@@ -21,13 +21,13 @@ function res = write_model_nml(conf, nml, fmt)
 %    2017-02-03 Fix output directory variable use.
 %    2017-08-01 Remove tabs from the namelists.
 
-if ~( exist(conf.fvcom_model, 'dir') )
-    mkdir(conf.fvcom_model);
+if ~( exist(conf.outbase, 'dir') )
+    mkdir(conf.outbase);
 end
 if isfield(conf,'casename_out')
-    fname = fullfile(conf.fvcom_model, [conf.casename_out, '.nml']);
+    fname = fullfile(conf.outbase, [conf.casename_out, '.nml']);
 else
-    fname = fullfile(conf.fvcom_model, [conf.casename, '.nml']);
+    fname = fullfile(conf.outbase, [conf.casename, '.nml']);
 end
 fnml = fopen(fname, 'wt');
 

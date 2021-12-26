@@ -68,9 +68,10 @@ subname = 'write_FVCOM_elevtide';
 if ftbverbose; fprintf('\nbegin : %s \n', subname); end
 
 % Default to string times as FVCOM looks for these first.
-strtime = true;
+strtime = false;
 inttime = false;
 floattime = false;
+julian = false;
 for vv = 1:2:length(varargin)
     switch varargin{vv}
         case 'strtime'
@@ -79,6 +80,8 @@ for vv = 1:2:length(varargin)
             inttime = true;
         case 'floattime'
             floattime = true;
+        case 'julian'
+            julian = true;
     end
 end
 
@@ -133,30 +136,41 @@ nobc_varid=netcdf.defVar(nc,'obc_nodes','NC_INT',nobc_dimid);
 netcdf.putAtt(nc,nobc_varid,'long_name','Open Boundary Node Number');
 netcdf.putAtt(nc,nobc_varid,'grid','obc_grid');
 
-iint_varid=netcdf.defVar(nc,'iint','NC_INT',time_dimid);
-netcdf.putAtt(nc,iint_varid,'long_name','internal mode iteration number');
+% iint_varid=netcdf.defVar(nc,'iint','NC_INT',time_dimid);
+% netcdf.putAtt(nc,iint_varid,'long_name','internal mode iteration number');
 
 if floattime
     time_varid=netcdf.defVar(nc,'time','NC_FLOAT',time_dimid);
     netcdf.putAtt(nc,time_varid,'long_name','time');
-    netcdf.putAtt(nc,time_varid,'units','days since 1858-11-17 00:00:00');
-    netcdf.putAtt(nc,time_varid,'format','modified julian day (MJD)');
-    netcdf.putAtt(nc,time_varid,'time_zone','UTC');
+    if julian
+        netcdf.putAtt(nc,time_varid,'units','days since 1858-11-17 00:00:00');
+        netcdf.putAtt(nc,time_varid,'format','modified julian day (MJD)');
+        netcdf.putAtt(nc,time_varid,'time_zone','UTC');
+    else
+        netcdf.putAtt(nc,time_varid,'units','days since 0.0');
+        netcdf.putAtt(nc,time_varid,'time_zone','none');
+    end
 end
 
 if inttime
     itime_varid=netcdf.defVar(nc,'Itime','NC_INT',time_dimid);
-    netcdf.putAtt(nc,itime_varid,'units','days since 1858-11-17 00:00:00');
-    netcdf.putAtt(nc,itime_varid,'format','modified julian day (MJD)');
-    netcdf.putAtt(nc,itime_varid,'time_zone','UTC');
-
+    if julian
+        netcdf.putAtt(nc,itime_varid,'units','days since 1858-11-17 00:00:00');
+        netcdf.putAtt(nc,itime_varid,'format','modified julian day (MJD)');
+        netcdf.putAtt(nc,itime_varid,'time_zone','UTC');
+    else
+        netcdf.putAtt(nc,itime_varid,'units','days since 0.0');
+        netcdf.putAtt(nc,itime_varid,'time_zone','none');
+    end
     itime2_varid=netcdf.defVar(nc,'Itime2','NC_INT',time_dimid);
-    netcdf.putAtt(nc,itime2_varid,'units','msec since 00:00:00');
     netcdf.putAtt(nc,itime2_varid,'time_zone','UTC');
+    netcdf.putAtt(nc,itime2_varid,'units','msec since 00:00:00');
 end
 
 if strtime
     Times_varid=netcdf.defVar(nc,'Times','NC_CHAR',[date_str_len_dimid, time_dimid]);
+    netcdf.putAtt(nc,Times_varid,'long_name','Calendar Date');
+    netcdf.putAtt(nc,Times_varid,'format','String: Calendar Time');
     netcdf.putAtt(nc,Times_varid,'time_zone','UTC');
 end
 
@@ -169,7 +183,7 @@ netcdf.endDef(nc);
 
 % write data
 netcdf.putVar(nc,nobc_varid,ObcNodes);
-netcdf.putVar(nc,iint_varid,0,nTimes,1:nTimes);
+% netcdf.putVar(nc,iint_varid,0,nTimes,1:nTimes);
 if strtime
     % If out MJD data is characters, assume we've already got a suitable
     % array of Time strings. Use those to create an MJD array to write to
@@ -193,10 +207,18 @@ if strtime
     netcdf.putVar(nc,Times_varid,nStringOut);
 end
 if floattime
-    netcdf.putVar(nc,time_varid,0,nTimes,MJD);
+    if julian
+        netcdf.putVar(nc,time_varid,0,nTimes,MJD);
+    else
+        netcdf.putVar(nc,time_varid,0,nTimes,MJD-MJD(1));
+    end
 end
 if inttime
-    netcdf.putVar(nc,itime_varid,floor(MJD));
+    if julian
+        netcdf.putVar(nc,itime_varid,floor(MJD));
+    else
+        netcdf.putVar(nc,itime_varid,floor(MJD-MJD(1)));
+    end
     netcdf.putVar(nc,itime2_varid,0,nTimes,round(mod(MJD,1) * 24 * 60 * 60 * 1000));
 end
 netcdf.putVar(nc,elevation_varid,Mobj.surfaceElevation);

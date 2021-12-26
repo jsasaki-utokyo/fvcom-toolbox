@@ -136,9 +136,9 @@ out = ver('MATLAB');
 native_netcdf = datenum(out.Date) >= version_7_14_date;
 
 global ftbverbose;
-if ftbverbose
+% if ftbverbose
     fprintf('\nbegin : %s\n', subname)
-end
+% end
 
 % Parse the input arguments
 src = 'reanalysis2';
@@ -153,9 +153,9 @@ if nargin > 2
         end
     end
 end
-if ftbverbose
+% if ftbverbose
     fprintf('Extracting %s data.\n', src)
-end
+% end
 
 % Get the extent of the model domain (in spherical)
 if ~Mobj.have_lonlat
@@ -227,22 +227,27 @@ for t = 1:nt
             ncep.lhtfl  = [url, 'gaussian_grid/lhtfl.sfc.gauss.', num2str(year), '.nc'];
             ncep.shtfl  = [url, 'gaussian_grid/shtfl.sfc.gauss.', num2str(year), '.nc'];
 
-            % The NCEP reanalysis data include net radiation fluxes whereas
-            % the reanalysis-2 data don't. Instead, we calculate nswrs and
-            % nlwrs from the downward and upward fluxes.
-            % ncep.nlwrs  = [url, 'gaussian_grid/nlwrs.sfc.gauss.', num2str(year), '.nc'];
-            % ncep.nswrs  = [url, 'gaussian_grid/nswrs.sfc.gauss.', num2str(year), '.nc'];
-
             % Evaporation is given in W/m^{2} whereas we want m/s. We
             % estimate evaporation from lhtfl instead and call it Et.
             % Instead we'll use this as a land mask since pevpr is only
             % given on land.
             ncep.pevpr  = [url, 'gaussian_grid/pevpr.sfc.gauss.', num2str(year), '.nc'];
-
+                   
+            % The NCEP reanalysis data include net radiation fluxes whereas
+            % the reanalysis-2 data don't. Instead, we calculate nswrs and
+            % nlwrs from the downward and upward fluxes.
             % The fields below can be used to create the net shortwave and
             % longwave fluxes if the data you're using don't include net
             % fluxes. Subtract the upward from downward fluxes to get net
             % fluxes (net = down - up).
+            % dswrf: 6-Hourly Mean of Downward Solar Radiation Flux at Surface
+            % https://www.esrl.noaa.gov/psd/thredds/dodsC/Datasets/ncep.reanalysis2/gaussian_grid/dswrf.sfc.gauss.2019.nc.html
+            % uswrf: 6-Hourly Mean of Upward Solar Radiation Flux at Surface
+            % https://www.esrl.noaa.gov/psd/thredds/dodsC/Datasets/ncep.reanalysis2/gaussian_grid/uswrf.sfc.gauss.2019.nc.html
+            % dlwrf: 6-Hourly Mean of Downward Longwave Radiation Flux at Surface
+            % https://www.esrl.noaa.gov/psd/thredds/dodsC/Datasets/ncep.reanalysis2/gaussian_grid/dlwrf.sfc.gauss.2019.nc.html
+            % ulwrf: 6-Hourly Mean of Upward Longwave Radiation Flux at Surface
+            % https://www.esrl.noaa.gov/psd/thredds/dodsC/Datasets/ncep.reanalysis2/gaussian_grid/ulwrf.sfc.gauss.2019.nc.html
             ncep.dswrf  = [url, 'gaussian_grid/dswrf.sfc.gauss.', num2str(year), '.nc'];
             ncep.uswrf  = [url, 'gaussian_grid/uswrf.sfc.gauss.', num2str(year), '.nc'];
             ncep.dlwrf  = [url, 'gaussian_grid/dlwrf.sfc.gauss.', num2str(year), '.nc'];
@@ -265,8 +270,8 @@ for t = 1:nt
             % the 20th Century Reanalysis-2 data don't. Instead, we
             % calculate nswrs and nlwrs from the downward and upward
             % fluxes.
-            % ncep.nlwrs  = [url, 'gaussian/monolevel/nlwrs.sfc.', num2str(year), '.nc'];
-            % ncep.nswrs  = [url, 'gaussian/monolevel/nswrs.sfc.', num2str(year), '.nc'];
+            ncep.nlwrs  = [url, 'gaussian/monolevel/nlwrs.sfc.', num2str(year), '.nc'];
+            ncep.nswrs  = [url, 'gaussian/monolevel/nswrs.sfc.', num2str(year), '.nc'];
 
             % Evaporation is given in W/m^{2} whereas we want m/s. We
             % estimate evaporation from lhtfl instead and call it Et.
@@ -288,21 +293,20 @@ for t = 1:nt
 
     fields = fieldnames(ncep);
 
-    if ftbverbose
-        fprintf('Downloading for %04d\n', year)
-    end
+    % if ftbverbose
+        fprintf('Downloading for %04d\n', year);
+    % end
 
     for aa = 1:length(fields)
-
         % We've been given a list of variables to do, so skip those that
         % aren't in the list.
         if ~isempty(varlist) && max(strcmp(fields{aa}, varlist)) ~= 1
             continue
         end
 
-        if ftbverbose
+        % if ftbverbose
             fprintf('getting ''%s'' data... ', fields{aa})
-        end
+        % end
 
         if t == 1
             data.(fields{aa}).data = [];
@@ -333,24 +337,24 @@ for t = 1:nt
                 varid = netcdf.inqVarID(ncid, (fields{aa}));
             end
 
-            data_attributes.(fields{aa}).(fields{aa}).scale_factor = ...
-                netcdf.getAtt(ncid,varid,'scale_factor','double');
-            data_attributes.(fields{aa}).(fields{aa}).add_offset = ...
-                netcdf.getAtt(ncid,varid,'add_offset','double');
-            data_attributes.(fields{aa}).(fields{aa}).unpacked_valid_range = ...
-                netcdf.getAtt(ncid, varid, 'unpacked_valid_range');
-
-            data_attributes.(fields{aa}).(fields{aa}).actual_range = ...
-                netcdf.getAtt(ncid,varid,'actual_range','double');
-            data_attributes.(fields{aa}).(fields{aa}).precision = ...
-                netcdf.getAtt(ncid,varid,'precision','double');
-
-            % Change the precision of the attributes to avoid errors
-            precision = 10^data_attributes.(fields{aa}).(fields{aa}).precision;
-            data_attributes.(fields{aa}).(fields{aa}).scale_factor = ...
-                round(precision*data_attributes.(fields{aa}).(fields{aa}).scale_factor)./precision;
-            data_attributes.(fields{aa}).(fields{aa}).add_offset   = ...
-                round(precision*data_attributes.(fields{aa}).(fields{aa}).add_offset)./precision;
+%             data_attributes.(fields{aa}).(fields{aa}).scale_factor = ...
+%                 netcdf.getAtt(ncid,varid,'scale_factor','double');
+%             data_attributes.(fields{aa}).(fields{aa}).add_offset = ...
+%                 netcdf.getAtt(ncid,varid,'add_offset','double');
+%             data_attributes.(fields{aa}).(fields{aa}).unpacked_valid_range = ...
+%                 netcdf.getAtt(ncid, varid, 'unpacked_valid_range');
+% 
+%             data_attributes.(fields{aa}).(fields{aa}).actual_range = ...
+%                 netcdf.getAtt(ncid,varid,'actual_range','double');
+%             data_attributes.(fields{aa}).(fields{aa}).precision = ...
+%                 netcdf.getAtt(ncid,varid,'precision','double');
+% 
+%             % Change the precision of the attributes to avoid errors
+%             precision = 10^data_attributes.(fields{aa}).(fields{aa}).precision;
+%             data_attributes.(fields{aa}).(fields{aa}).scale_factor = ...
+%                 round(precision*data_attributes.(fields{aa}).(fields{aa}).scale_factor)./precision;
+%             data_attributes.(fields{aa}).(fields{aa}).add_offset   = ...
+%                 round(precision*data_attributes.(fields{aa}).(fields{aa}).add_offset)./precision;
 
             varid = netcdf.inqVarID(ncid,'lon');
             data_lon.lon = netcdf.getVar(ncid,varid,'double');
@@ -576,7 +580,11 @@ for t = 1:nt
             data.(fields{aa}).lon = data_lon.lon(index_lon);
 
             if native_netcdf
-                varid = netcdf.inqVarID(ncid,(fields{aa}));
+                if strcmpi(fields{aa}, 'topo')
+                    varid = netcdf.inqVarID(ncid, 'hgt');
+                else
+                    varid = netcdf.inqVarID(ncid,(fields{aa}));
+                end
                 % [varname,xtype,dimids,natts] = netcdf.inqVar(ncid,varid);
                 % [~,length1] = netcdf.inqDim(ncid,dimids(1))
                 % [~,length2] = netcdf.inqDim(ncid,dimids(2))
@@ -606,7 +614,7 @@ for t = 1:nt
         end
 
         datatmp = squeeze(data1.(fields{aa}).(fields{aa}).(fields{aa}));
-        datatmp = (datatmp * data_attributes.(fields{aa}).(fields{aa}).scale_factor) + data_attributes.(fields{aa}).(fields{aa}).add_offset;
+%         datatmp = (datatmp * data_attributes.(fields{aa}).(fields{aa}).scale_factor) + data_attributes.(fields{aa}).(fields{aa}).add_offset;
 
         % Fix the longitude ranges for all data.
         data.(fields{aa}).lon(data.(fields{aa}).lon > 180) = ...
@@ -619,11 +627,11 @@ for t = 1:nt
             data.(fields{aa}).data = cat(3, data.(fields{aa}).data, datatmp);
             data.(fields{aa}).time = cat(1, data.(fields{aa}).time, scratch.time);
         end
-        data.(fields{aa}).unpacked_valid_range = ...
-            data_attributes.(fields{aa}).(fields{aa}).unpacked_valid_range;
-        %     data.(fields{aa}).time = cat(1, data.(fields{aa}).time, squeeze(data1.(fields{aa}).(fields{aa}).time));
-        %     data.(fields{aa}).lat = squeeze(data1.(fields{aa}).(fields{aa}).lat);
-        %     data.(fields{aa}).lon = squeeze(data1.(fields{aa}).(fields{aa}).lon);
+%          data.(fields{aa}).unpacked_valid_range = ...
+%              data_attributes.(fields{aa}).(fields{aa}).unpacked_valid_range;
+%         data.(fields{aa}).time = cat(1, data.(fields{aa}).time, squeeze(data1.(fields{aa}).(fields{aa}).time));
+%         data.(fields{aa}).lat = squeeze(data1.(fields{aa}).(fields{aa}).lat);
+%         data.(fields{aa}).lon = squeeze(data1.(fields{aa}).(fields{aa}).lon);
 
         % Replace values outside the specified actual range with NaNs. For the
         % majority of the variables, this shouldn't ever really generate values
@@ -632,22 +640,67 @@ for t = 1:nt
         % if something fails later on (e.g. the interpolation) because there's
         % NaNs, that should be a wakeup call to check what's going on with the
         % data.
-        if isfield(data_attributes.(fields{aa}).(fields{aa}), 'actual_range')
-            actual_min = data_attributes.(fields{aa}).(fields{aa}).actual_range(1);
-            actual_max = data_attributes.(fields{aa}).(fields{aa}).actual_range(2);
-            mask = data.(fields{aa}).data < actual_min | data.(fields{aa}).data > actual_max;
-            data.(fields{aa}).data(mask) = NaN;
-        end
+%         if isfield(data_attributes.(fields{aa}).(fields{aa}), 'actual_range')
+%             actual_min = data_attributes.(fields{aa}).(fields{aa}).actual_range(1);
+%             actual_max = data_attributes.(fields{aa}).(fields{aa}).actual_range(2);
+%             mask = data.(fields{aa}).data < actual_min | data.(fields{aa}).data > actual_max;
+%             data.(fields{aa}).data(mask) = NaN;
+%         end
 
-        if ftbverbose
+        % if ftbverbose
             if isfield(data, fields{aa})
                 fprintf('done.\n')
             else
                 fprintf('error!\n')
             end
+        % end
+    end
+end
+
+% Make sure all the data we have downloaded is the same shape as the
+% longitude and latitude arrays. This is complicated by the fact the NCEP
+% surface products (e.g. rhum, pres) are on a different grid from the rest
+% (e.g. uwnd).
+for aa = 1:length(fields)
+%     if strcmpi(fields{aa}, 'dswrf') ||...
+%             strcmpi(fields{aa}, 'dlwrf') ||...
+%             strcmpi(fields{aa}, 'uswrf') ||...
+%             strcmpi(fields{aa}, 'ulwrf')
+%         % But only if we haven't been given a list of variables to fetch.
+%         if nargin ~= 3
+%             continue
+%         end
+%     end
+
+    if ~isempty(varlist) && max(strcmp(fields{aa}, varlist)) ~= 1
+        % We've been given a list of variables to extract, so skip those
+        % that aren't in that list
+        continue
+    else
+        if isfield(data, fields{aa})
+            [px, py] = deal(length(data.(fields{aa}).lon), length(data.(fields{aa}).lat));
+            [ncx, ncy, ~] = size(data.(fields{aa}).data);
+            % if ncx ~= px || ncy ~= py
+            if ncx == px || ncy == py
+                data.(fields{aa}).data = permute(data.(fields{aa}).data, [2, 1, 3]);
+
+                % Check everything's OK now.
+                [ncx, ncy, ~] = size(data.(fields{aa}).data);
+                % if ncx ~= px || ncy ~= py
+                if ncx == px || ncy == py
+                    error('Unable to resize data arrays to match position data orientation. Are these data NCEP surface data (i.e. on a different horizontal grid?)')
+                else
+                    % if ftbverbose
+                        fprintf('Matching %s data dimensions to position arrays\n', fields{aa})
+                    % end
+                end
+            end
+        else
+            warning('Variable %s requested but not downloaded?', fields{aa})
         end
     end
 end
+
 % Calculate the net long and shortwave radiation fluxes.
 if isfield(data, 'ulwrf') && isfield(data, 'uswrf') && isfield(data, 'dlwrf') && isfield(data, 'dswrf')
     vars = {'nswrs', 'nlwrs'};
@@ -668,7 +721,11 @@ end
 
 % To maintain compatibility, dump the time from the last variable
 % loaded into a top level variable.
-data.time = data.(fields{aa}).time;
+try
+    data.time = data.(fields{aa}).time;
+catch
+    data.time = data.(varlist{length(varlist)}).time;
+end
 
 % Now we have some data, we need to create some additional parameters
 % required by FVCOM.
@@ -692,25 +749,28 @@ end
 if isfield(data, 'prate') && isfield(data, 'lhtfl')
     Llv = 2.5*10^6;
     rho = 1025; % using a typical value for seawater.
-    Et = data.lhtfl.data/Llv/rho;
-    data.P_E.data = data.prate.data - Et;
+    evap = data.lhtfl.data/Llv/rho;
+    data.P_E.data = data.prate.data - evap;
     data.P_E.lon = data.prate.lon;
     data.P_E.lat = data.prate.lat;
     data.P_E.time = data.prate.time;
     % Evaporation and precipitation need to have the same sign for FVCOM (ocean
     % losing water is negative in both instances). So, flip the evaporation
     % here.
-    data.Et.data = -Et;
+    data.Et.data = -evap;
+    data.Et.time = data.prate.time;
+    data.Et.lon = data.prate.lon;
+    data.Et.lat = data.prate.lat;
 end
 
 % Calculate the momentum flux
-if isfield(data, 'uwnd') && isfield(data, 'vwnd')
-    WW = data.uwnd.data + data.vwnd.data * 1i;
-    data.tau.data = stresslp(abs(WW),10);
-    [data.tx.data,data.ty.data] = wstress(data.uwnd.data,data.vwnd.data,10);
-    data.tx.data=reshape(data.tx.data*0.1, size(data.uwnd.data)); % dyn/cm^2 to N/m^2
-    data.ty.data=reshape(data.ty.data*0.1, size(data.uwnd.data)); % dyn/cm^2 to N/m^2
-end
+% if isfield(data, 'uwnd') && isfield(data, 'vwnd')
+%     WW = data.uwnd.data + data.vwnd.data * 1i;
+%     data.tau.data = stresslp(abs(WW),10);
+%     [data.tx.data,data.ty.data] = wstress(data.uwnd.data,data.vwnd.data,10);
+%     data.tx.data=reshape(data.tx.data*0.1, size(data.uwnd.data)); % dyn/cm^2 to N/m^2
+%     data.ty.data=reshape(data.ty.data*0.1, size(data.uwnd.data)); % dyn/cm^2 to N/m^2
+% end
 
 % Get the fields we need for the subsequent interpolation Find the position
 % of a sensibly sized array (i.e. not 'topo', 'rhum' or 'pres').
@@ -742,62 +802,23 @@ data.lon(data.lon > 180) = data.lon(data.lon > 180) - 360;
 data.lat = data.(fields{ii}).lat;
 
 % Create a land mask from the pevpr data (if it's been extracted).
-if isfield(data, 'pevpr')
-    % Find any value less than or equal to the valid maximum across all
-    % time steps.
-    data.land_mask = max(data.pevpr.data <= data.pevpr.unpacked_valid_range(2), [], 3);
-end
+% if isfield(data, 'pevpr')
+%     % Find any value less than or equal to the valid maximum across all
+%     % time steps.
+%     data.land_mask = max(data.pevpr.data <= data.pevpr.unpacked_valid_range(2), [], 3);
+% end
 
 % Convert temperature to degrees Celsius (from Kelvin)
 if isfield(data, 'air')
     data.air.data = data.air.data - 273.15;
 end
 
-% Make sure all the data we have downloaded is the same shape as the
-% longitude and latitude arrays. This is complicated by the fact the NCEP
-% surface products (e.g. rhum, pres) are on a different grid from the rest
-% (e.g. uwnd).
-for aa = 1:length(fields)
-%     if strcmpi(fields{aa}, 'dswrf') || strcmpi(fields{aa}, 'dlwrf') || strcmpi(fields{aa}, 'uswrf') || strcmpi(fields{aa}, 'ulwrf')
-%         % But only if we haven't been given a list of variables to fetch.
-%         if nargin ~= 3
-%             continue
-%         end
-%     end
-
-    if ~isempty(varlist) && max(strcmp(fields{aa}, varlist)) ~= 1
-        % We've been given a list of variables to extract, so skip those
-        % that aren't in that list
-        continue
-    else
-        if isfield(data, fields{aa})
-            [px, py] = deal(length(data.(fields{aa}).lon), length(data.(fields{aa}).lat));
-            [ncx, ncy, ~] = size(data.(fields{aa}).data);
-            if ncx ~= px || ncy ~= py
-                data.(fields{aa}).data = permute(data.(fields{aa}).data, [2, 1, 3]);
-
-                % Check everything's OK now.
-                [ncx, ncy, ~] = size(data.(fields{aa}).data);
-                if ncx ~= px || ncy ~= py
-                    error('Unable to resize data arrays to match position data orientation. Are these data NCEP surface data (i.e. on a different horizontal grid?)')
-                else
-                    if ftbverbose
-                        fprintf('Matching %s data dimensions to position arrays\n', fields{aa})
-                    end
-                end
-            end
-        else
-            warning('Variable %s requested but not downloaded?', fields{aa})
-        end
-    end
-end
-
 if datenum(out.Date) > version_7_14_date
     netcdf.close(ncid)
 end
 
-% Have a look at some data.
-% [X, Y] = meshgrid(data.lon, data.lat);
+% % Have a look at some data.
+% [X, Y] = meshgrid(data.uwnd.lon, data.uwnd.lat);
 % for i=1:size(data.uwnd.data, 3)
 %     figure(1)
 %     clf
@@ -808,8 +829,8 @@ end
 %     pause(0.1)
 % end
 
-if ftbverbose
+% if ftbverbose
     fprintf('end   : %s\n', subname)
-end
+% end
 
 return

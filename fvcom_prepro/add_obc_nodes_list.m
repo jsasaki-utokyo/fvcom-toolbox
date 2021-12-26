@@ -59,10 +59,10 @@ end
 %--------------------------------------------------------------------------
 % Make this works in versions of MATLAB older than 2012a (newer versions
 % can just use unique(A, 'stable'), but checking versions is a pain).
-[~, Nidx] = unique(Nodelist);
-Nodelist = Nodelist(sort(Nidx));
+%[~, Nidx] = unique(Nodelist);
+%Nodelist = Nodelist(sort(Nidx));
 
-assert(max(Nodelist) <= Mobj.nVerts, 'Your open boundary node number (%d) exceeds the total number of nodes in the domain (%d)', max(Nodelist), Mobj.nVerts)
+%assert(max(Nodelist) < Mobj.nVerts, 'Your open boundary node number exceed the total number of nodes in the domain\n')
 
 %--------------------------------------------------------------------------
 % Plot the mesh

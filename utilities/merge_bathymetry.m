@@ -6,7 +6,7 @@ function [ new_bat ] = merge_bathymetry( dist_OB,coarse_bat,fine_bat,d0,d1 )
 % DESCRIPTION:
 %   This script uses a blending function to combine two bathymetry sources
 %    over a common spatial extent (High-resolution, unstructured meshes for hydrodynamic models of the Great Barrier Reef, Australia,
-%    Estuarine Coastal and Shelf Science 68:36-46 · June 2006
+%    Estuarine Coastal and Shelf Science 68:36-46 June 2006
 %    DOI: 10.1016/j.ecss.2005.08.017 )
 
 % INPUT [keyword pairs]:

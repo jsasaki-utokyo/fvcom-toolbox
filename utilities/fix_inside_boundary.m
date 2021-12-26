@@ -1,4 +1,4 @@
-function [adjx, adjy] = fix_inside_boundary(x, y, node_ids, ang_thresh)
+function [adjx, adjy, seen] = fix_inside_boundary(x, y, node_ids, ang_thresh)
 % Fix unstructured grid points inside the given boundary.
 %
 % [adjx, adjy] = fix_inside_boundary(x, y, node_ids, ang_thresh)

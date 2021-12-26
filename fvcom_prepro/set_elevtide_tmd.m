@@ -6,7 +6,7 @@
 %
 % Rory O'Hara Murray, 2013-07-01
 %
-function [Mobj TMD_ConList] = set_elevtide_tmd(Mobj, dates_MJD, path_to_tmd)
+function [Mobj TMD_ConList] = set_elevtide_tmd(Mobj, dates_MJD, model)
 
 %MyTitle = 'Julian FVCOM time series for open boundary from TPXO model using TMD';
 
@@ -34,9 +34,14 @@ lon = Mobj.lon(BNid);
 dates = dates_MJD([1 end]) + datenum('1858-11-17 00:00:00');
 time = dates(1):1/24/6:dates(2);
 time_MJD = time - datenum('1858-11-17 00:00:00');
-model_file = 'DATA\Model_ES2008';
+model_file = model;
 current_dir = pwd;
-cd(path_to_tmd);
+%tmp = which('tmd_tide_pred_2.m');
+%a = strfind(tmp, 'tmd_tide_pred_2.m');
+%cd(tmp(1:a-1))
+tpxo_dir = which('TMD');    % find the TPXO directory
+tpxo_dir = tpxo_dir(1:end-5);   % remove TPXO.m
+cd(tpxo_dir)
 [eta, TMD_ConList] = tmd_tide_pred_2(model_file, time, lat, lon, 'z');
 cd(current_dir);
 

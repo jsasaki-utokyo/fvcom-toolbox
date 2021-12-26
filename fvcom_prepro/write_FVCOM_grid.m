@@ -52,7 +52,7 @@ end
 %--------------------------------------------------------------------------
 % Dump the file
 %------------------------------------------------------------------------------
-if strcmpi(Mobj.nativeCoords, 'cartesian')
+if(lower(Mobj.nativeCoords(1:3)) == 'car')
     x = Mobj.x;
     y = Mobj.y;
 else
@@ -67,7 +67,9 @@ assert(fid > 0, 'Error opening output file %s', filename)
 fprintf(fid, 'Node Number = %d\n', Mobj.nVerts);
 fprintf(fid, 'Cell Number = %d\n', Mobj.nElems);
 fprintf(fid, '%d %d %d %d %d\n', [(1:Mobj.nElems)', Mobj.tri, (1:Mobj.nElems)']');
-fprintf(fid, '%d %f %f %f\n', [(1:Mobj.nVerts)', x, y, Mobj.h]');
+for i = 1:Mobj.nVerts
+    fprintf(fid, '%d %f %f %f\n', i, x(i), y(i), Mobj.h(i));
+end
 fclose(fid);
 
 if ftbverbose

@@ -55,16 +55,19 @@ if ftbverbose
     fprintf('\nbegin : %s\n', subname)
 end
 
-nr = length(Mobj.river_nodes);
+nr = length(Mobj.riverList);
+% nr = length(Mobj.river_nodes);
 
 f = fopen(nml_file, 'w');
 assert(f >= 0, 'Error writing to %s. Check permissions and try again.', nml_file)
 
 for r = 1:nr
     fprintf(f, ' &NML_RIVER\n');
-    fprintf(f, '  RIVER_NAME          = ''%s'',\n', Mobj.river_names{r});
+    fprintf(f, '  RIVER_NAME          = ''%s'',\n', Mobj.river.name{1,r});
+%     fprintf(f, '  RIVER_NAME          = ''%s'',\n', Mobj.river_names{r});
     fprintf(f, '  RIVER_FILE          = ''%s'',\n', nc_file);
-    fprintf(f, '  RIVER_GRID_LOCATION = %d,\n', Mobj.river_nodes(r));
+    fprintf(f, '  RIVER_GRID_LOCATION = %d,\n', Mobj.riverList(r));
+%     fprintf(f, '  RIVER_GRID_LOCATION = %d,\n', Mobj.river_nodes(r));
     
     % Build the vertical distribution string. Round to 15 decimal places so
     % the unique check works (hopefully no one needs that many vertical

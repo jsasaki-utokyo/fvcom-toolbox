@@ -108,9 +108,9 @@ end
 subname = 'grid2fvcom';
 
 global ftbverbose;
-if ftbverbose
+% if ftbverbose
     fprintf('\nbegin : %s \n', subname)
-end
+% end
 
 % Before we go too far into this, check we have all the fields in the input
 % data that are being requested.
@@ -121,34 +121,40 @@ end
 
 % Run jobs on multiple workers if we have that functionality. Not sure if
 % it's necessary, but check we have the Parallel Toolbox first.
-if license('test', 'Distrib_Computing_Toolbox')
-    % We have the Parallel Computing Toolbox, so launch a bunch of workers.
-    if isempty(gcp('nocreate'))
-        % Force pool to be local in case we have remote pools available.
-        parpool('local');
-    end
-end
+% if license('test', 'Distrib_Computing_Toolbox')
+%    % We have the Parallel Computing Toolbox, so launch a bunch of workers.
+%    if isempty(gcp('nocreate'))
+%        % Force pool to be local in case we have remote pools available.
+%        parpool('local');
+%    end
+% end
 
 %--------------------------------------------------------------------------
 % Get the relevant bits from the FVCOM mesh object
 %--------------------------------------------------------------------------
-x = Mobj.x;
-y = Mobj.y;
+
+% if strcmpi(Mobj.nativeCoords, 'spherical')
+    x = Mobj.lon;
+    y = Mobj.lat;
+% else
+%     x = Mobj.x;
+%     y = Mobj.y;
+% end
 nVerts = Mobj.nVerts;
 nElems = Mobj.nElems;
-if ftbverbose
-    fprintf('info for FVCOM domain\n');
+% if ftbverbose
+    % fprintf('info for FVCOM domain\n');
     fprintf('number of nodes: %d\n', nVerts);
     fprintf('number of elems: %d\n', nElems);
-end
+% end
 
 xc = nodes2elems(x, Mobj);
 yc = nodes2elems(y, Mobj);
 
 try
-    ntimes = numel(data.time);
-catch
     ntimes = numel(data.(vars{1}).time);
+catch
+    ntimes = numel(data.time);
 end
 
 % Interpolate supplied regularly gridded data to FVCOM mesh. Use
@@ -160,21 +166,25 @@ for vv = 1:length(vars)
             fprintf('transferring variable %s as is\n', vars{vv})
             fvcom.(vars{vv}) = data.(vars{vv});
             continue
-
         case {'lat', 'lon', 'x', 'y'}
             fprintf('reassigning variable %s from unstructured grid\n', vars{vv})
             fvcom.(vars{vv}) = Mobj.(vars{vv});
-
         case {'xalt', 'yalt'}
             % Only exist for the interpolation of some data on an
             % alternative grid. 
             fprintf('skipping %s\n', vars{vv})
-
         otherwise
             % Preallocate the output arrays. Also create temporary arrays
             % for the inner loop to be parallelisable (is that a word?):
-            tmp_fvcom_data = zeros(nElems, ntimes);
-            tmp_fvcom_node = zeros(nVerts, ntimes);
+%                 if do_elems
+                    tmp_fvcom_data = zeros(nElems, ntimes);
+                    %tmp_fvcom_data = zeros(nElems, ntimes,'single');
+                    tmp_fvcom_data = sparse(tmp_fvcom_data);
+%                 else
+                    tmp_fvcom_node = zeros(nVerts, ntimes);
+                    %tmp_fvcom_node = zeros(nVerts, ntimes,'single');    
+                    tmp_fvcom_node = sparse(tmp_fvcom_node);
+%                 end
             try
                 tmp_data_data = data.(vars{vv}).data; % input to the interpolation
             catch msg
@@ -183,15 +193,18 @@ for vv = 1:length(vars)
                 tmp_data_data = data.(vars{vv}); % input to the interpolation
                 fprintf('success!\n')
             end
-
-            xx = data.x(:);
-            yy = data.y(:);
-
+%             if strcmpi(Mobj.nativeCoords, 'spherical')
+                xx = data.lon(:);
+                yy = data.lat(:);
+                [fvx, fvy] = size(data.lon);
+%             else
+%                 xx = data.x(:);
+%                 yy = data.y(:);
+%                 [fvx, fvy] = size(data.x);
+%             end
             % Check the shapes of the input data match those of the
             % position arrays.
-            [fvx, fvy] = size(data.x);
             [ncx, ncy, ~] = size(tmp_data_data);
-
             if isfield(data, 'xalt')
                 [fvxalt, fvyalt] = size(data.xalt);
                 if (ncx ~= fvx || ncy ~= fvy) || (ncx ~= fvxalt || ncy ~= fvyalt)
@@ -209,22 +222,25 @@ for vv = 1:length(vars)
                 end
                 % If we have a land mask, mask off the coastal and land
                 % points in the coordinates arrays.
-                if isfield(data, 'lsm')
-                    xx(data.lsm ~= 0) = [];
-                    yy(data.lsm ~= 0) = [];
+                if isfield(data, 'land_mask')
+                    xx(data.land_mask ~= 0) = [];
+                    yy(data.land_mask ~= 0) = [];
                 end
             end
 
             % Use a parallel loop for the number of time steps we're
             % interpolating.
-            varname = vars{vv};
+            varname = vars{vv};            
             parfor i = 1:ntimes
-                if ftbverbose
-                    fprintf('interpolating %s, frame %d of %d\n', varname, i, ntimes);
-                end
-
+                % if ftbverbose
+                %    fprintf('interpolating %s, frame %d of %d\n', varname, i, ntimes);
+                % end
                 currvar = tmp_data_data(:, :, i);
-
+                % Not sure yet, but only for fix the NaN in prate data.
+                % By Yulong @ Jun 5, 2019.
+                if strcmpi(varname, 'prate')
+                    currvar(isnan(currvar)) = 0
+                end
                 % TriScatteredInterp way (with natural neighbour
                 % interpolation). Instead of the quite crude try/catch that
                 % was here, count the number of elements in the coordinate
@@ -241,70 +257,83 @@ for vv = 1:length(vars)
                 if isfield(data, 'xalt')
                     xxalt = data.xalt(:);
                     yyalt = data.yalt(:);
-                    if isfield(data, 'lsmalt')
-                        xxalt(data.lsmalt ~= 0) = [];
-                        yyalt(data.lsmalt ~= 0) = [];
+                    if isfield(data, 'land_mask')
+                        xxalt(data.land_mask ~= 0) = [];
+                        yyalt(data.land_mask ~= 0) = [];
                     end
                 end
                 assert(nxx == nyy, 'Inconsistent coordinate array sizes.')
                 if nxx == ndata
-                    ftsin = TriScatteredInterp(...
+                    ftsin = scatteredInterpolant(...
                         xx, ...
                         yy, ...
                         currvar(~isnan(currvar(:))), ...
                         'natural');
                 elseif isfield(data, 'xalt') && numel(xxalt) == ndata
-                    ftsin = TriScatteredInterp(...
+                    ftsin = scatteredInterpolant(...
                         xxalt, ...
                         yyalt, ...
+                        currvar(~isnan(currvar(:))), ...
+                        'natural');
+                elseif strcmpi(varname, 'pres') || strcmpi(varname, 'rhum')
+                     xxxalt = data.xalt(:);
+                     yyyalt = data.yalt(:);
+                     ftsin = scatteredInterpolant(...
+                        xxxalt, ...
+                        yyyalt, ...
                         currvar(~isnan(currvar(:))), ...
                         'natural');
                 else
                     error('Can''t interpolate the data: non-matching coordinate array sizes.')
                 end
 
-                tmp_fvcom_node(:, i) = ftsin(x, y);
-                nnans1 = sum(isnan(tmp_fvcom_node(:, i)));
-                if  nnans1 > 0
-                    warning('%i NaNs in the interpolated node data. This won''t work with FVCOM.', nnans1)
-                end
-                if do_elems
+%                 if do_elems
                     tmp_fvcom_data(:, i) = ftsin(xc, yc);
                     nnans2 = sum(isnan(tmp_fvcom_data(:, i)));
                     if nnans2 > 0
                         warning('%i NaNs in the interpolated element data. This won''t work with FVCOM.', nnans2)
                     end
-                end
+%                 end
+
+%                 if ~do_elems
+                    tmp_fvcom_node(:, i) = ftsin(x, y);
+                    nnans1 = sum(isnan(tmp_fvcom_node(:, i)));
+                    if  nnans1 > 0
+                        warning('%i NaNs in the interpolated node data. This won''t work with FVCOM.', nnans1)
+                    end
+%                 end
             end
+                
             % Transfer the temporary arrays back to the relevant struct and
             % clear out the temporary arrays.
-            fvcom.(vars{vv}).node = tmp_fvcom_node;
             if do_elems
                 fvcom.(vars{vv}).data = tmp_fvcom_data;
+            else
+                fvcom.(vars{vv}).node = tmp_fvcom_node;
             end
             clear nnans* tmp_*
 
-            if ftbverbose
+            % if ftbverbose
                 fprintf('interpolation of %s complete\n', vars{vv});
-            end
+            % end
     end
 end
 
-cleaner = onCleanup(@() delete(gcp('nocreate')));
-
-if ftbverbose
-    fprintf('end   : %s \n', subname)
-end
-
-%% Debugging figure to check the interpolation makes sense.
-
+% cleaner = onCleanup(@() delete(gcp('nocreate')));
+% 
+% if ftbverbose
+%     fprintf('end   : %s \n', subname)
+% end
+% 
+% %% Debugging figure to check the interpolation makes sense.
+% 
 % close all
-%
+% 
 % figure
-%
-% vartoplot = 'nswrf';
+% 
+% vartoplot = 'uwnd';
 % tidx = 12; % time index
-%
+% 
 % subplot(2, 1, 1)
 % try
 %     pcolor(data.lon, data.lat, data.(vartoplot).data(:, :, tidx)')
@@ -321,7 +350,7 @@ end
 %     caxis([min(fvcom.(vartoplot)(:, tidx)), max(fvcom.(vartoplot)(:, tidx))])
 % end
 % axis([min(Mobj.lon), max(Mobj.lon), min(Mobj.lat), max(Mobj.lat)])
-%
+% 
 % subplot(2, 1, 2)
 % try
 %     patch('Vertices', [Mobj.lon, Mobj.lat], 'Faces', Mobj.tri, 'cData', fvcom.(vartoplot).data(:, tidx));
@@ -339,4 +368,4 @@ end
 %     caxis([min(fvcom.(vartoplot)(:, tidx)), max(fvcom.(vartoplot)(:, tidx))])
 % end
 % axis([min(Mobj.lon), max(Mobj.lon), min(Mobj.lat), max(Mobj.lat)])
-
+% 
