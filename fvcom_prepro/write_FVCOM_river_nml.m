@@ -72,7 +72,7 @@ for r = 1:nr
     % Build the vertical distribution string. Round to 15 decimal places so
     % the unique check works (hopefully no one needs that many vertical
     % layers...).
-    vDist = roundn(abs(diff(Mobj.siglev)), -15);
+    vDist = round(abs(diff(Mobj.siglev)), 15);
     if length(unique(vDist)) == 1 || ~exist(vString, 'var')
         vString = '''uniform''';
     elseif nargin <= 3
