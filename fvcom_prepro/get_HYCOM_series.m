@@ -27,7 +27,7 @@ end
 % timestep = 1/24;
 ratio = (obs_time(2)-obs_time(1))/timestep;
 dims_old = length(obs_time);
-dims_new = (dims_old-1)*ratio+1;
+dims_new = (dims_old-1)*ratio;
 
 % Time
 for i = 1:ratio-1
