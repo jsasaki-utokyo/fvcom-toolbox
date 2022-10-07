@@ -165,9 +165,9 @@ suffix.ssh          = {'surf_el', 'ssh'};
 % Get the URL to use for the first time step.
 url = get_url(modelTime(1), threehourly);
 
-if modelTime(1) < greg2mjulian(2008, 09, 19, 0, 0, 0)
+if modelTime(1) < greg2mjulian(2008, 09, 19, 0, 0, 0) || modelTime(1) >= greg2mjulian(2018, 11, 28, 0, 0, 0)
     name_index = 1;
-elseif modelTime(1) >= greg2mjulian(2008, 09, 19, 0, 0, 0)
+elseif modelTime(1) >= greg2mjulian(2008, 09, 19, 0, 0, 0) && modelTime(1) < greg2mjulian(2018, 11, 28, 0, 0, 0)
     name_index = 2;
 end
 hycom.MT            = [url, suffix.MT{name_index}];          % time [1D]
@@ -234,9 +234,17 @@ for tt = 1:nt
     % current time.
 
     % Set up a struct of the HYCOM data sets in which we're interested.
+    %{
     if times(tt) < greg2mjulian(2008, 09, 19, 0, 0, 0)
         name_index = 1;
     elseif times(tt) >= greg2mjulian(2008, 09, 19, 0, 0, 0)
+        name_index = 2;
+    end
+    %}
+
+    if modelTime(1) < greg2mjulian(2008, 09, 19, 0, 0, 0) || modelTime(1) >= greg2mjulian(2018, 11, 28, 0, 0, 0)
+        name_index = 1;
+    elseif modelTime(1) >= greg2mjulian(2008, 09, 19, 0, 0, 0) && modelTime(1) < greg2mjulian(2018, 11, 28, 0, 0, 0)
         name_index = 2;
     end
     hycom.MT            = [url, suffix.MT{name_index}];          % time [1D]
@@ -253,9 +261,15 @@ for tt = 1:nt
     url = get_url(times(tt), threehourly);
     % Only reopen the connection if the two URLs differ.
     if ~strcmpi(oldurl, url) || tt == 1
+        %{
         if times(tt) < greg2mjulian(2008, 09, 19, 0, 0, 0)
             hycom.MT = [url, suffix.MT{1}];
         elseif times(tt) >= greg2mjulian(2008, 09, 19, 0, 0, 0)
+            hycom.MT = [url, suffix.MT{2}];
+        %}
+        if times(tt) < greg2mjulian(2008, 09, 19, 0, 0, 0) || times(tt) >= greg2mjulian(2018, 11, 28, 0, 0, 0)
+            hycom.MT = [url, suffix.MT{1}];
+        elseif times(tt) >= greg2mjulian(2008, 09, 19, 0, 0, 0) && times(tt) < greg2mjulian(2018, 11, 28, 0, 0, 0)
             hycom.MT = [url, suffix.MT{2}];
         end
         ncid = netcdf.open(hycom.MT, 'NOWRITE');
@@ -275,9 +289,9 @@ for tt = 1:nt
         % Convert to Gregorian date and then to Modified Julian Days. The
         % Global Reanalysis stores time as hours since 2000-01-01, the
         % Global Analysis as days since 1900-12-31.
-        if times(tt) < greg2mjulian(2008, 09, 19, 0, 0, 0)
+        if times(tt) < greg2mjulian(2008, 09, 19, 0, 0, 0) || times(tt) >= greg2mjulian(2018, 11, 28, 0, 0, 0)
             t{c} = datevec((data.MT.data{c} / 24) + datenum(2000, 1, 1, 0, 0, 0));
-        elseif times(tt) >= greg2mjulian(2008, 09, 19, 0, 0, 0)
+        elseif times(tt) >= greg2mjulian(2008, 09, 19, 0, 0, 0) && times(tt) < greg2mjulian(2018, 11, 28, 0, 0, 0)
             t{c} = datevec(data.MT.data{c} + datenum(1900, 12, 31, 0, 0, 0));
         end
         tmjd{c} = greg2mjulian(t{c}(:,1), t{c}(:,2), t{c}(:,3), t{c}(:,4), t{c}(:,5), t{c}(:,6));
@@ -409,9 +423,9 @@ for aa = 1:length(fields)
         url = get_url(times(tt), threehourly);
 
         if ~strcmpi(oldurl, url) || tt == 1
-            if times(tt) < greg2mjulian(2008, 09, 19, 0, 0, 0)
+            if times(tt) < greg2mjulian(2008, 09, 19, 0, 0, 0)  || times(tt) >= greg2mjulian(2018, 11, 28, 0, 0, 0)
                 hycom.(fields{aa}) = [url, suffix.(fields{aa}){1}];
-            elseif times(tt) >= greg2mjulian(2008, 09, 19, 0, 0, 0)
+            elseif times(tt) >= greg2mjulian(2008, 09, 19, 0, 0, 0) && times(tt) < greg2mjulian(2018, 11, 28, 0, 0, 0)
                 hycom.(fields{aa}) = [url, suffix.(fields{aa}){2}];
             end
             c = c + 1;
@@ -485,11 +499,12 @@ elseif time >= greg2mjulian(2013, 8, 21, 0, 0, 0) && time < greg2mjulian(2014, 4
     url = 'http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.0?';
 elseif time >= greg2mjulian(2014, 4, 21, 0, 0, 0) && time < greg2mjulian(2016, 4, 18, 0, 0, 0)
     url = 'http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.1?';
-elseif time >= greg2mjulian(2016, 4, 18, 0, 0, 0) && time <= greg2mjulian(t1, t2, t3, t4, t5, t6)
+elseif time >= greg2mjulian(2016, 4, 18, 0, 0, 0) && time < greg2mjulian(2018, 11, 27, 0, 0, 0)
     url = 'http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_91.2?';
+elseif time >= greg2mjulian(2018, 11, 27, 0, 0, 0) && time <= greg2mjulian(t1, t2, t3, t4, t5, t6)
+    url = 'http://tds.hycom.org/thredds/dodsC/GLBy0.08/expt_93.0/ts3z?';
 elseif time > greg2mjulian(t1, t2, t3, t4, t5, t6)
     error('Given date is in the future.')
 else
     error('Date is outside of the known spacetime continuum. See help TARDIS.')
 end
-
